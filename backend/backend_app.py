@@ -12,7 +12,43 @@ POSTS = [
 
 @app.route('/api/posts', methods=['GET'])
 def get_posts():
-    return jsonify(POSTS)
+    """
+    Gibt alle Blogbeiträge zurück und sortiert sie optional.
+
+    Die Sortierung erfolgt über die Query-Parameter 'sort' und 'direction'.
+    Ohne Angabe eines Sortierfeldes bleibt die ursprüngliche Reihenfolge erhalten.
+
+    sort: Sortierfeld ('title' oder 'content').
+    direction: Sortierrichtung ('asc' oder 'desc'). Standardmäßig aufsteigend.
+
+    :return: JSON-Liste der Blogbeiträge (200) oder Fehlermeldung (400).
+    """
+    sort = request.args.get('sort', '').lower()
+    direction = request.args.get('direction', '').lower()
+
+    if direction and direction not in ('asc', 'desc'):
+        return jsonify({'error': 'Invalid sort direction'}), 400
+
+    if not sort:
+        return jsonify(POSTS)
+
+    if sort not in ('title', 'content'):
+        return jsonify({'error': 'Invalid sort field'}), 400
+
+    if direction == "desc":
+        sorted_posts = sorted(
+            POSTS,
+            key=lambda post: post[sort],
+            reverse=True
+        )
+    else:
+        sorted_posts = sorted(
+            POSTS,
+            key=lambda post: post[sort],
+            reverse=False
+        )
+
+    return jsonify(sorted_posts)
 
 
 @app.route('/api/posts', methods=['POST'])
@@ -20,15 +56,17 @@ def add_post():
     """
     Fügt einen neuen Blogpost hinzu.
 
-    Erwartet ein JSON-Objekt mit den Feldern 'title' und 'content'.
-    Gibt den neuen Blogpost oder eine Fehlermeldung zurück.
+    Erwartet ein JSON-Objekt mit den Pflichtfeldern 'title' und 'content'.
+    Die ID wird automatisch vergeben.
 
-    :return: JSON-Antwort mit Statuscode 201 oder 400.
+    :return: Neuer Blogbeitrag als JSON (201) oder Fehlermeldung (400).
     """
     post_data = request.get_json()
 
     if not isinstance(post_data, dict):
-        return jsonify({'error': 'Request body must be a JSON object'}), 400
+        return jsonify(
+            {'error': 'Request body must be a JSON object'}
+        ), 400
 
     error_list = []
 
@@ -52,19 +90,43 @@ def add_post():
 
     return jsonify(new_post), 201
 
+
 @app.route('/api/posts/<int:post_id>', methods=['DELETE'])
 def delete_post(post_id):
+    """
+    Löscht einen Blogbeitrag anhand seiner ID.
+
+    :param post_id: ID des zu löschenden Blogbeitrags.
+    :return: JSON-Erfolgsmeldung (200) oder Fehlermeldung (404).
+    """
     for post in POSTS:
         if post['id'] == post_id:
             POSTS.remove(post)
-            return jsonify({'message': f"Post with id {post_id} has been deleted successfully."}), 200
+            return jsonify(
+                {'message': f"Post with id {post_id} has been deleted successfully."}
+            ), 200
 
     return jsonify({'message': f"Post with id {post_id} not found."}), 404
 
 
 @app.route('/api/posts/<int:post_id>', methods=['PUT'])
 def update_post(post_id):
+    """
+    Aktualisiert einen bestehenden Blogbeitrag anhand seiner ID.
+
+    Erwartet ein JSON-Objekt mit 'title' und/oder 'content'.
+    Nur übergebene, nicht leere Felder werden aktualisiert.
+
+    :param post_id: ID des zu aktualisierenden Blogbeitrags.
+    :return: Aktualisierter Blogbeitrag als JSON (200)
+             oder Fehlermeldung (400 oder 404).
+    """
     update_post_data = request.get_json()
+
+    if not isinstance(update_post_data, dict):
+        return jsonify(
+            {'error': 'Request body must be a JSON object'}
+        ), 400
 
     for post in POSTS:
         if post['id'] == post_id:
@@ -81,6 +143,16 @@ def update_post(post_id):
 
 @app.route('/api/posts/search', methods=['GET'])
 def search_post():
+    """
+    Durchsucht Blogbeiträge nach Titel oder Inhalt.
+
+    Die Suche erfolgt über die Query-Parameter 'title' und 'content'.
+    Ein Beitrag wird zurückgegeben, wenn mindestens ein Suchbegriff
+    im entsprechenden Feld enthalten ist.
+
+    :return: JSON-Liste der gefundenen Blogbeiträge (200).
+             Bei fehlenden Treffern wird eine leere Liste zurückgegeben.
+    """
     title = request.args.get('title', '').lower()
     content = request.args.get('content', '').lower()
 
@@ -88,10 +160,16 @@ def search_post():
 
     for post in POSTS:
         if title:
-            if title in post['title'].lower() and not post in matching_posts:
+            if (
+                title in post['title'].lower()
+                and post not in matching_posts
+            ):
                 matching_posts.append(post)
         if content:
-            if content in post['content'].lower() and not post in matching_posts:
+            if (
+                content in post['content'].lower()
+                and post not in matching_posts
+            ):
                 matching_posts.append(post)
 
     return jsonify(matching_posts)
