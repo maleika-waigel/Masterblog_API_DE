@@ -1,0 +1,188 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Masterblog API",
+    "version": "1.0.0"
+  },
+  "host": "localhost:5002",
+  "basePath": "/",
+  "schemes": ["http"],
+  "tags": [{ "name": "Blog Posts", "description": "API zum Erstellen, Abrufen, Aktualisieren und Löschen von Blogbeiträgen." }],
+  "paths": {
+    "/api/posts": {
+        "get": {
+          "summary": "Gibt alle Blogbeiträge zurück.",
+          "description": "Gibt alle Blogbeiträge zurück. Die Beiträge können optional nach Titel oder Inhalt aufsteigend oder absteigend sortiert werden.",
+          "produces": ["application/json"],
+          "tags": ["Blog Posts"],
+          "parameters": [
+            {
+              "in": "query",
+              "name": "sort",
+              "type": "string",
+              "description": "Sortierfeld: title oder content",
+              "required": false,
+              "enum": ["title", "content"]
+            },
+            {
+              "in" : "query",
+              "name" : "direction",
+              "type" : "string",
+              "description": "Sortierrichtung: asc oder desc",
+              "required": false,
+              "enum": ["asc", "desc"]
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Blogbeiträge erfolgreich abgerufen."
+            },
+            "400": {
+              "description" : "Ungültiges Sortierfeld oder ungültige Sortierrichtung."
+            }
+          }
+        },
+        "post" : {
+          "summary" : "Erstellt einen neuen Blogbeitrag.",
+          "description" : "Erstellt einen Blogbeitrag mit Titel und Inhalt. Die ID wird automatisch vergeben." ,
+          "consumes" : ["application/json"],
+          "produces": ["application/json"],
+          "tags": ["Blog Posts"],
+          "parameters" : [
+            {
+              "name" : "post" ,
+              "in" : "body" ,
+              "description" : "Daten des neuen Blogbeitrags" ,
+              "required" : true ,
+              "schema" : {
+                "type": "object",
+                "required": ["title", "content"],
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "Titel des Blogbeitrags",
+                    "example": "Mein erster Blogbeitrag"
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "Inhalt des Blogbeitrags",
+                    "example": "Das ist der Inhalt meines Blogbeitrags."
+                  }
+                }
+              }
+            }
+          ],
+          "responses" : {
+            "201" : {
+              "description" : "Blogbeitrag erfolgreich erstellt."
+             },
+            "400" : {
+              "description" : "Ungültiger Request-Body oder fehlende Pflichtfelder (title oder content)."
+             }
+          }
+        }
+    },
+    "/api/posts/{post_id}": {
+      "put" : {
+        "summary": "Aktualisiert einen Blogbeitrag.",
+        "description": "Aktualisiert einen Blogbeitrag anhand seiner ID. Die übergebenen, nicht leeren Felder title und content werden aktualisiert. Nicht übergebene Felder bleiben unverändert.",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["Blog Posts"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "post_id",
+            "type": "integer",
+            "description": "ID des zu aktualisierenden Blogbeitrags.",
+            "required": true
+          },
+          {
+            "in": "body",
+            "name": "post",
+            "description": "Die zu aktualisierenden Daten des Blogbeitrags.",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "description": "Neuer Titel des Blogbeitrags.",
+                  "example": "Mein aktualisierter Blogbeitrag"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Neuer Inhalt des Blogbeitrags.",
+                  "example": "Das ist der aktualisierte Inhalt."
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Blogbeitrag erfolgreich aktualisiert."
+          },
+          "400": {
+            "description": "Der Request-Body muss ein JSON-Objekt sein."
+          },
+          "404": {
+            "description": "Blogbeitrag mit der angegebenen ID nicht gefunden."
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Löscht einen Blogbeitrag.",
+        "description" : "Löscht einen Blogbeitrag anhand seiner ID.",
+        "produces": ["application/json"],
+        "tags": ["Blog Posts"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "post_id",
+            "type": "integer",
+            "description": "ID des zu löschenden Blogbeitrags",
+            "required": true
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "Blogbeitrag erfolgreich gelöscht."
+           },
+          "404" : {
+            "description": "Blogbeitrag mit der angegebenen ID nicht gefunden."
+           }
+        }
+      }
+    },
+    "/api/posts/search": {
+      "get": {
+        "summary": "Sucht Blogbeiträge.",
+        "description": "Durchsucht Blogbeiträge nach Titel und/oder Inhalt. Die Suche unterscheidet nicht zwischen Groß- und Kleinschreibung. Ein Beitrag wird zurückgegeben, wenn der Suchbegriff für den Titel im Titel oder der Suchbegriff für den Inhalt im Inhalt vorkommt. Werden beide Parameter angegeben, genügt ein Treffer in einem der beiden Felder. Werden keine Suchparameter angegeben oder keine Treffer gefunden, wird eine leere Liste zurückgegeben.",
+        "produces": ["application/json"],
+        "tags": ["Blog Posts"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "title",
+            "type": "string",
+            "description": "Optionaler Suchbegriff für den Titel.",
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "content",
+            "type": "string",
+            "description": "Optionaler Suchbegriff für den Inhalt.",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Suchergebnisse erfolgreich abgerufen. Bei keinen Treffern wird eine leere Liste zurückgegeben."
+          }
+        }
+      }
+    }
+  }
+}
